@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"log"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v230"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 	"google.golang.org/grpc"
 )
 
@@ -17,21 +18,43 @@ type Dgraph struct {
 	Conn   *grpc.ClientConn
 }
 
-//New creates a new instance of DGraph
-func New(addr string) (*Dgraph, error) {
+//New creates a new instance of DGraphc
+func New(addr string, apiKey string, username string, password string, namespace string) (*Dgraph, error) {
+
 	// Dial a gRPC connection. The address to dial to can be configured when
 	// setting up the dgraph cluster.
 	if addr == "" {
 		addr = "localhost:9080"
 	}
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
+
+	let conn *grpc.ClientConn
+	let err error
+
+	if (apiKey == "" || namespace == "") {
+		conn, err := dgo.Dial(addr, grpc.WithInsecure())
+	} else {
+		conn, err := dgo.DialCloud(addr, apiKey)
 	}
+
+	if err != nil {
+  	log.Fatal(err)
+	}
+	defer conn.Close()
+	dc := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+
+
+	if (username != "" && password != "" && namespace != "") {
+	ctx := context.Background()
+	// Login to namespace 4
+	if err := dc.LoginIntoNamespace(ctx, username, password, namespace); err != nil {
+		log.Fatal("Failed to login: ",err)
+	} else {
+		log.Print("Login successful")
+	}
+}
+
 	return &Dgraph{
-		Client: dgo.NewDgraphClient(
-			api.NewDgraphClient(conn),
-		),
+		Client: dc,
 		Conn: conn,
 	}, nil
 }

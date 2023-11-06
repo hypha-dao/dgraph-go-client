@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 
 func beforeAll() {
 	var err error
-	dgraph, err = New("")
+	dgraph, err = New("", "")
 	if err != nil {
 		log.Fatalf("Unable to create dgraph: %v", err)
 	}
