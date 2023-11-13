@@ -19,7 +19,10 @@ type Dgraph struct {
 }
 
 //New creates a new instance of DGraphc
-func New(addr string, apiKey string, username string, password string, namespace string) (*Dgraph, error) {
+func New(addr string, apiKey string, username string, password string, namespace uint64) (*Dgraph, error) {
+
+	var conn *grpc.ClientConn
+	var err error
 
 	// Dial a gRPC connection. The address to dial to can be configured when
 	// setting up the dgraph cluster.
@@ -27,31 +30,31 @@ func New(addr string, apiKey string, username string, password string, namespace
 		addr = "localhost:9080"
 	}
 
-	let conn *grpc.ClientConn
-	let err error
-
-	if (apiKey == "" || namespace == "") {
-		conn, err := dgo.Dial(addr, grpc.WithInsecure())
+	// If apiKey is empty, we use insecure connection without credentials
+	if (apiKey == "") {
+		conn, err = grpc.Dial(addr, grpc.WithInsecure())
 	} else {
-		conn, err := dgo.DialCloud(addr, apiKey)
+		conn, err = dgo.DialCloud(addr, apiKey)
 	}
 
 	if err != nil {
   	log.Fatal(err)
 	}
+
 	defer conn.Close()
 	dc := dgo.NewDgraphClient(api.NewDgraphClient(conn))
 
-
-	if (username != "" && password != "" && namespace != "") {
-	ctx := context.Background()
-	// Login to namespace 4
-	if err := dc.LoginIntoNamespace(ctx, username, password, namespace); err != nil {
-		log.Fatal("Failed to login: ",err)
-	} else {
-		log.Print("Login successful")
+	// If username, password and namespace are not provided, we login into the namespace
+	if (username != "" && password != "" && namespace != 0) {
+		ctx := context.Background()
+		log.Printf("Login into namespace %v", namespace)
+		// Login to namespace 4
+		if err := dc.LoginIntoNamespace(ctx, username, password, namespace); err != nil {
+			log.Fatal("Failed to login: ",err)
+		} else {
+			log.Print("Login successful")
+		}
 	}
-}
 
 	return &Dgraph{
 		Client: dc,
