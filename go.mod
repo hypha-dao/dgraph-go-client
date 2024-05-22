@@ -1,4 +1,4 @@
-module github.com/sebastianmontero/dgraph-go-client
+module github.com/hypha-dao/dgraph-go-client
 
 go 1.15
 
